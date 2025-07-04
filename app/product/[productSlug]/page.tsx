@@ -9,9 +9,7 @@ import {
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import React from "react";
-import { FaSquareFacebook } from "react-icons/fa6";
-import { FaSquareXTwitter } from "react-icons/fa6";
-import { FaSquarePinterest } from "react-icons/fa6";
+import { FaSquareFacebook, FaSquareXTwitter, FaSquarePinterest } from "react-icons/fa6";
 
 interface ImageItem {
   imageID: string;
@@ -20,114 +18,99 @@ interface ImageItem {
 }
 
 const SingleProductPage = async ({ params }: SingleProductPageProps) => {
-  // sending API request for a single product with a given product slug
-  const data = await fetch(
-    `http://localhost:3001/api/slugs/${params.productSlug}`
-  );
-  const product = await data.json();
+  const res = await fetch(`http://localhost:3001/api/slugs/${params.productSlug}`);
+  const product = await res.json();
 
-  // sending API request for more than 1 product image if it exists
-  const imagesData = await fetch(
-    `http://localhost:3001/api/images/${product.id}`
-  );
-  const images = await imagesData.json();
+  const imagesRes = await fetch(`http://localhost:3001/api/images/${product.id}`);
+  const images = await imagesRes.json();
 
-  if (!product || product.error) {
-    notFound();
-  }
+  if (!product || product.error) notFound();
 
   return (
-    <div className="bg-white">
-      <div className="max-w-screen-2xl mx-auto">
-        <div className="flex justify-center gap-x-16 pt-10 max-lg:flex-col items-center gap-y-5 px-5">
-          <div>
+    <div className="bg-white text-black">
+      <div className="max-w-screen-2xl mx-auto px-4 md:px-8 py-10">
+        {/* Top section: image + product details */}
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* Product images */}
+          <div className="flex-1">
             <Image
-              src={product?.mainImage ? `/${product?.mainImage}` : "/product_placeholder.jpg"}
+              src={product?.mainImage ? `/${product.mainImage}` : "/product_placeholder.jpg"}
               width={500}
               height={500}
-              alt="main image"
-              className="w-auto h-auto"
+              alt={product.title}
+              className="w-full max-w-md object-contain mx-auto"
             />
-            <div className="flex justify-around mt-5 flex-wrap gap-y-1 max-[500px]:justify-center max-[500px]:gap-x-1">
+
+            <div className="flex justify-center gap-3 flex-wrap mt-5">
               {images?.map((imageItem: ImageItem) => (
                 <Image
                   key={imageItem.imageID}
                   src={`/${imageItem.image}`}
-                  width={100}
-                  height={100}
-                  alt="laptop image"
-                  className="w-auto h-auto"
+                  width={80}
+                  height={80}
+                  alt={`product image ${imageItem.imageID}`}
+                  className="border rounded-md object-contain p-1 hover:scale-105 transition"
                 />
               ))}
             </div>
           </div>
-          <div className="flex flex-col gap-y-7 text-black max-[500px]:text-center">
+
+          {/* Product info */}
+          <div className="flex-1 flex flex-col gap-6">
             <SingleProductRating rating={product?.rating} />
-            <h1 className="text-3xl">{product?.title}</h1>
-            <p className="text-xl font-semibold">${product?.price}</p>
+            <h1 className="text-3xl font-bold">{product?.title}</h1>
+            <p className="text-2xl font-semibold text-blue-600">Ksh. {product?.price}</p>
+
             <StockAvailabillity stock={94} inStock={product?.inStock} />
             <SingleProductDynamicFields product={product} />
-            <div className="flex flex-col gap-y-2 max-[500px]:items-center">
+
+            <div className="flex flex-col gap-4">
               <AddToWishlistBtn product={product} slug={params.productSlug} />
               <p className="text-lg">
-                SKU: <span className="ml-1">abccd-18</span>
+                <span className="font-semibold">SKU:</span> abccd-18
               </p>
-              <div className="text-lg flex gap-x-2">
-                <span>Share:</span>
-                <div className="flex items-center gap-x-1 text-2xl">
-                  <FaSquareFacebook />
-                  <FaSquareXTwitter />
-                  <FaSquarePinterest />
+
+              {/* Social Share */}
+              <div className="flex items-center gap-3 text-lg">
+                <span className="font-semibold">Share:</span>
+                <div className="flex gap-2 text-2xl text-blue-500">
+                  <FaSquareFacebook className="hover:text-blue-700 transition" />
+                  <FaSquareXTwitter className="hover:text-black transition" />
+                  <FaSquarePinterest className="hover:text-red-500 transition" />
                 </div>
               </div>
-              <div className="flex gap-x-2">
-                <Image
-                  src="/visa.svg"
-                  width={50}
-                  height={50}
-                  alt="visa icon"
-                  className="w-auto h-auto"
-                />
-                <Image
-                  src="/mastercard.svg"
-                  width={50}
-                  height={50}
-                  alt="mastercard icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/ae.svg"
-                  width={50}
-                  height={50}
-                  alt="americal express icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/paypal.svg"
-                  width={50}
-                  height={50}
-                  alt="paypal icon"
-                  className="w-auto h-auto"
-                />
-                <Image
-                  src="/dinersclub.svg"
-                  width={50}
-                  height={50}
-                  alt="diners club icon"
-                  className="h-auto w-auto"
-                />
-                <Image
-                  src="/discover.svg"
-                  width={50}
-                  height={50}
-                  alt="discover icon"
-                  className="h-auto w-auto"
-                />
+
+              {/* IntaSend Secure Payment Badge */}
+              <div className="mt-4">
+                <a
+                  href="https://intasend.com/security"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src="https://intasend-prod-static.s3.amazonaws.com/img/trust-badges/intasend-trust-badge-with-mpesa-hr-dark.png"
+                    width="375"
+                    alt="IntaSend Secure Payments (PCI-DSS Compliant)"
+                    className="mx-auto"
+                  />
+                </a>
+                <strong>
+                  <a
+                    href="https://intasend.com/security"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-xs mt-2 text-gray-500 hover:underline text-center"
+                  >
+                    Secured by IntaSend Payments
+                  </a>
+                </strong>
               </div>
             </div>
           </div>
         </div>
-        <div className="py-16">
+
+        {/* Tabs section */}
+        <div className="py-16 border-t mt-10">
           <ProductTabs product={product} />
         </div>
       </div>

@@ -1,6 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     images: {
+	domains: ["dukasasa.co.ke", "jezkimhardware.dukasasa.co.ke"],
         remotePatterns: [
           {
             protocol: 'https',

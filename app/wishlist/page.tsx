@@ -1,84 +1,98 @@
 "use client";
-import { SectionTitle, WishItem } from "@/components";
+
+import { SectionTitle } from "@/components";
 import React, { useEffect, useState } from "react";
-import { useWishlistStore } from "../_zustand/wishlistStore";
-import { nanoid } from "nanoid";
 import { useSession } from "next-auth/react";
+import { nanoid } from "nanoid";
+import { bagistoGetWishlist, bagistoRemoveFromWishlist } from "@/lib/bagisto";
+import WishItem from "@/components/WishItem";
 
-
+interface WishlistItem {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  slug: string;
+  stockAvailability: number;
+}
 
 const WishlistPage = () => {
-  const { data: session, status } = useSession();
-  const {wishlist, setWishlist}= useWishlistStore();
+  const { data: session } = useSession();
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
 
-  const getWishlistByUserId = async (id: string) => {
-    const response = await fetch(`http://localhost:3001/api/wishlist/${id}`, {
-      cache: "no-store",
-    });
-    const wishlist = await response.json();
+  const fetchWishlist = async () => {
+    try {
+      const token = (session as any)?.accessToken as string;
+      if (!token) return;
 
-    const productArray: {
-      id: string;
-      title: string;
-      price: number;
-      image: string;
-      slug:string
-      stockAvailabillity: number;
-    }[] = [];
-    
-    wishlist.map((item:any) => productArray.push({id: item?.product?.id, title: item?.product?.title, price: item?.product?.price, image: item?.product?.mainImage, slug: item?.product?.slug, stockAvailabillity: item?.product?.inStock}));
-    
-    setWishlist(productArray);
+      const response = await bagistoGetWishlist(token);
+
+      const products = response.map((item: any) => ({
+        id: item.id,
+        title: item.name,
+        price: parseFloat(item.price),
+        image: item.base_image?.small_image_url || "/placeholder.png",
+        slug: item.url_key,
+        stockAvailability: item.in_stock ? 1 : 0,
+      }));
+
+      setWishlist(products);
+    } catch (error) {
+      console.error("Failed to fetch wishlist:", error);
+    }
   };
 
-  const getUserByEmail = async () => {
-    if (session?.user?.email) {
-      fetch(`http://localhost:3001/api/users/email/${session?.user?.email}`, {
-        cache: "no-store",
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          getWishlistByUserId(data?.id);
-        });
+  const handleRemove = async (productId: string) => {
+    try {
+      const token = (session as any)?.accessToken as string;
+      if (!token) return;
+
+      await bagistoRemoveFromWishlist(productId, token);
+      setWishlist((prev) => prev.filter((item) => item.id !== productId));
+    } catch (error) {
+      console.error("Failed to remove from wishlist:", error);
     }
   };
 
   useEffect(() => {
-    getUserByEmail();
-  }, [session?.user?.email, wishlist.length]);
+    if ((session as any)?.accessToken) {
+      fetchWishlist();
+    }
+  }, [session]);
+
   return (
-    <div className="bg-white">
+    <div className="bg-white min-h-screen">
       <SectionTitle title="Wishlist" path="Home | Wishlist" />
-      {wishlist && wishlist.length === 0 ? (
+      {wishlist.length === 0 ? (
         <h3 className="text-center text-4xl py-10 text-black max-lg:text-3xl max-sm:text-2xl max-sm:pt-5 max-[400px]:text-xl">
           No items found in the wishlist
         </h3>
       ) : (
-        <div className="max-w-screen-2xl mx-auto">
+        <div className="max-w-screen-2xl mx-auto px-4">
           <div className="overflow-x-auto">
             <table className="table text-center">
               <thead>
                 <tr>
                   <th></th>
-                  <th className="text-accent-content">Image</th>
-                  <th className="text-accent-content">Name</th>
-                  <th className="text-accent-content">Stock Status</th>
-                  <th className="text-accent-content">Action</th>
+                  <th className="text-[#ff5b00]">Image</th>
+                  <th className="text-[#ff5b00]">Name</th>
+                  <th className="text-[#ff5b00]">Stock Status</th>
+                  <th className="text-[#ff5b00]">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {wishlist &&
-                  wishlist?.map((item) => (
-                    <WishItem
-                      id={item?.id}
-                      title={item?.title}
-                      price={item?.price}
-                      image={item?.image}
-                      slug={item?.slug}
-                      stockAvailabillity={item?.stockAvailabillity}
-                      key={nanoid()}
-                    />
-                  ))}
+                {wishlist.map((item) => (
+                  <WishItem
+                    key={nanoid()}
+                    id={item.id}
+                    title={item.title}
+                    price={item.price}
+                    image={item.image}
+                    slug={item.slug}
+                    stockAvailability={item.stockAvailability}
+                    onRemove={() => handleRemove(item.id)}
+                  />
+                ))}
               </tbody>
             </table>
           </div>

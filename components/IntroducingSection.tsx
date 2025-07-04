@@ -1,36 +1,34 @@
-// *********************
-// Role of the component: IntroducingSection with the text "Introducing Singitronic"
-// Name of the component: IntroducingSection.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <IntroducingSection />
-// Input parameters: no input parameters
-// Output: Section with the text "Introducing Singitronic" and button
-// *********************
+"use client";
 
 import Link from "next/link";
 import React from "react";
 
 const IntroducingSection = () => {
   return (
-    <div className="py-20 pt-24 bg-gradient-to-l from-white to-blue-600">
-      <div className="text-center flex flex-col gap-y-5 items-center">
-        <h2 className="text-white text-8xl font-extrabold text-center mb-2 max-md:text-6xl max-[480px]:text-4xl">
-          INTRODUCING <span className="text-black">SINGI</span><span className="text-blue-600">TRONIC</span>
+    <section className="py-14 bg-gradient-to-r from-white via-orange-100 to-orange-300 shadow-inner">
+      <div className="text-center flex flex-col gap-y-5 items-center px-4">
+        <h2 className="text-5xl md:text-6xl font-extrabold text-gray-900 tracking-tight transition-transform duration-300 hover:scale-105">
+          INTRODUCING{" "}
+          <span className="text-orange-600">JEZKIM HARDWARE</span>
         </h2>
-        <div>
-          <p className="text-white text-center text-2xl font-semibold max-md:text-xl max-[480px]:text-base">
-            Buy the latest electronics.
+
+        <div className="space-y-1 max-w-2xl mx-auto">
+          <p className="text-gray-800 text-lg font-medium">
+            Power Tools that Work as Hard as You Do.
           </p>
-          <p className="text-white text-center text-2xl font-semibold max-md:text-xl max-[480px]:text-base">
-            The best electronics for tech lovers.
+          <p className="text-gray-800 text-lg font-medium">
+            From drills to grinders — rugged, reliable, ready for any job.
           </p>
-          <Link href="/shop" className="block text-blue-600 bg-white font-bold px-12 py-3 text-xl hover:bg-gray-100 w-96 mt-2  max-md:text-lg max-md:w-72 max-[480px]:w-60 mx-auto">
-            SHOP NOW
-          </Link>
         </div>
+
+        <Link
+          href="/shop"
+          className="mt-4 inline-block bg-orange-600 text-white font-bold px-8 py-2 text-base rounded-full shadow-md transition-transform hover:scale-105 hover:bg-orange-700"
+        >
+          SHOP NOW
+        </Link>
       </div>
-    </div>
+    </section>
   );
 };
 

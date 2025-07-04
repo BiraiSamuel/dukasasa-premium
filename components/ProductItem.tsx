@@ -1,68 +1,81 @@
-// *********************
-// Role of the component: Product item component 
-// Name of the component: ProductItem.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <ProductItem product={product} color={color} />
-// Input parameters: { product: Product; color: string; }
-// Output: Product item component that contains product image, title, link to the single product page, price, button...
-// *********************
-
 import Image from "next/image";
-import React from "react";
 import Link from "next/link";
-import ProductItemRating from "./ProductItemRating";
+import { FaStar, FaRegStar } from "react-icons/fa";
+
+type Product = {
+  id: number;
+  name: string;
+  urlKey: string;
+  image: string;
+  formattedPrice: string;
+  shortDescription: string;
+  description: string;
+  averageRating: number;
+  totalReviews: number;
+};
+
+const renderStars = (rating: number) => {
+  const stars = [];
+  for (let i = 1; i <= 5; i++) {
+    stars.push(
+      i <= Math.floor(rating) ? (
+        <FaStar key={i} className="text-yellow-400" />
+      ) : (
+        <FaRegStar key={i} className="text-yellow-400" />
+      )
+    );
+  }
+  return stars;
+};
 
 const ProductItem = ({
   product,
-  color,
+  color = "black",
 }: {
   product: Product;
-  color: string;
+  color?: string;
 }) => {
   return (
-    <div className="flex flex-col items-center gap-y-2">
-      <Link href={`/product/${product.slug}`}>
-        <Image
-          src={
-            product.mainImage
-              ? `/${product.mainImage}`
-              : "/product_placeholder.jpg"
-          }
-          width="0"
-          height="0"
-          sizes="100vw"
-          className="w-auto h-[300px]"
-          alt={product?.title}
-        />
-      </Link>
-      <Link
-        href={`/product/${product.slug}`}
-        className={
-          color === "black"
-            ? `text-xl text-black font-normal mt-2 uppercase`
-            : `text-xl text-white font-normal mt-2 uppercase`
-        }
-      >
-        {product.title}
-      </Link>
-      <p
-        className={
-          color === "black"
-            ? "text-lg text-black font-semibold"
-            : "text-lg text-white font-semibold"
-        }
-      >
-        ${product.price}
-      </p>
+    <div className="bg-white rounded-xl p-4 shadow-md h-full flex flex-col justify-between">
+      {/* Product Image */}
+      <Image
+        src={product.image}
+        alt={product.name}
+        width={500}
+        height={300}
+        className="w-full h-52 object-contain rounded-lg"
+      />
 
-      <ProductItemRating productRating={product?.rating} />
-      <Link
-        href={`/product/${product?.slug}`}
-        className="block flex justify-center items-center w-full uppercase bg-white px-0 py-2 text-base border border-black border-gray-300 font-bold text-blue-600 shadow-sm hover:bg-black hover:bg-gray-100 focus:outline-none focus:ring-2"
-      >
-        <p>View product</p>
-      </Link>
+      {/* Product Info */}
+      <div className="mt-4 space-y-2">
+        <h3 className={`text-md font-semibold text-${color}`}>
+          {product.name}
+        </h3>
+
+        {/* Price */}
+        <p className={`text-sm font-bold text-${color}`}>
+          {product.formattedPrice}
+        </p>
+
+        {/* Rating */}
+        <div className="flex items-center gap-1 text-sm text-gray-500">
+          {renderStars(product.averageRating)}
+          <span className="ml-1">({product.totalReviews})</span>
+        </div>
+
+        {/* Description */}
+        <p className={`text-sm text-${color}/80`}>
+          {product.shortDescription}
+        </p>
+
+        {/* View Product Link */}
+        <Link
+          href={`/products/${product.urlKey}`}
+          className="inline-block mt-3 text-sm text-blue-600 font-medium hover:underline"
+        >
+          View Product
+        </Link>
+      </div>
     </div>
   );
 };

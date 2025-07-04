@@ -1,121 +1,62 @@
-// *********************
-// Role of the component: Wishlist item component for wishlist page
-// Name of the component: WishItem.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <WishItem id={id} title={title} price={price} image={image} slug={slug} stockAvailabillity={stockAvailabillity} />
-// Input parameters: ProductInWishlist interface
-// Output: single wishlist item on the wishlist page
-// *********************
-
-"use client";
-import { useWishlistStore } from "@/app/_zustand/wishlistStore";
-import { revalidatePath } from "next/cache";
+import Link from "next/link";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import { FaHeartCrack } from "react-icons/fa6";
-import { deleteWishItem } from "@/app/actions";
-import { useSession } from "next-auth/react";
+import { Trash2 } from "lucide-react";
 
-interface wishItemStateTrackers {
-  isWishItemDeleted: boolean;
-  setIsWishItemDeleted: any;
+export interface WishItemProps {
+  id: string;
+  title: string;
+  price: number;
+  image: string;
+  slug: string;
+  stockAvailability: number;
+  onRemove: () => void;
 }
 
 const WishItem = ({
-  id,
   title,
   price,
   image,
   slug,
-  stockAvailabillity,
-}: ProductInWishlist) => {
-  const { data: session, status } = useSession();
-  const { removeFromWishlist } = useWishlistStore();
-  const router = useRouter();
-  const [userId, setUserId] = useState<string>();
-
-  const openProduct = (slug: string): void => {
-    router.push(`/product/${slug}`);
-  };
-
-  const getUserByEmail = async () => {
-    if (session?.user?.email) {
-      fetch(`http://localhost:3001/api/users/email/${session?.user?.email}`, {
-        cache: "no-store",
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          setUserId(data?.id);
-        });
-    }
-  };
-
-  const deleteItemFromWishlist = async (productId: string) => {
-    
-    if (userId) {
-
-      fetch(`http://localhost:3001/api/wishlist/${userId}/${productId}`, {method: "DELETE"}).then(
-        (response) => {
-          removeFromWishlist(productId);
-          toast.success("Item removed from your wishlist");
-        }
-      );
-    }else{
-      toast.error("You need to be logged in to perform this action");
-    }
-  };
-
-  useEffect(() => {
-    getUserByEmail();
-  }, [session?.user?.email]);
-
+  stockAvailability,
+  onRemove,
+}: WishItemProps) => {
   return (
-    <tr className="hover:bg-gray-100 cursor-pointer">
-      <th
-        className="text-black text-sm text-center"
-        onClick={() => openProduct(slug)}
-      >
-        {id}
-      </th>
-      <th>
-        <div className="w-12 h-12 mx-auto" onClick={() => openProduct(slug)}>
+    <tr className="text-black">
+      <td></td>
+      <td>
+        <Link href={`/products/${slug}`}>
           <Image
-            src={`/${image}`}
-            width={200}
-            height={200}
-            className="w-auto h-auto"
+            src={image}
             alt={title}
+            width={80}
+            height={80}
+            className="mx-auto object-contain rounded"
           />
-        </div>
-      </th>
-      <td
-        className="text-black text-sm text-center"
-        onClick={() => openProduct(slug)}
-      >
-        {title}
+        </Link>
       </td>
-      <td
-        className="text-black text-sm text-center"
-        onClick={() => openProduct(slug)}
-      >
-        {stockAvailabillity ? (
-          <span className="text-success">In stock</span>
+      <td>
+        <Link
+          href={`/products/${slug}`}
+          className="font-semibold text-sm hover:underline hover:text-[#ff5b00]"
+        >
+          {title}
+        </Link>
+        <p className="text-sm text-gray-600">${price.toFixed(2)}</p>
+      </td>
+      <td>
+        {stockAvailability ? (
+          <span className="text-green-600 font-medium">In Stock</span>
         ) : (
-          <span className="text-error">Out of stock</span>
+          <span className="text-red-500 font-medium">Out of Stock</span>
         )}
       </td>
       <td>
-        <button className="btn btn-xs bg-blue-500 text-white hover:text-blue-500 border border-blue-500 hover:bg-white hover:text-blue-500 text-sm">
-          <FaHeartCrack />
-          <span
-            className="max-sm:hidden"
-            onClick={() => deleteItemFromWishlist(id)}
-          >
-            remove from the wishlist
-          </span>
+        <button
+          onClick={onRemove}
+          className="text-red-600 hover:text-red-800"
+          title="Remove from Wishlist"
+        >
+          <Trash2 className="w-5 h-5" />
         </button>
       </td>
     </tr>

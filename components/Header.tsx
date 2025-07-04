@@ -1,128 +1,177 @@
-// *********************
-// Role of the component: Header component
-// Name of the component: Header.tsx
-// Developer: Aleksandar Kuzmanovic
-// Version: 1.0
-// Component call: <Header />
-// Input parameters: no input parameters
-// Output: Header component
-// *********************
-
 "use client";
-import { usePathname } from "next/navigation";
-import React, { useEffect, useState } from "react";
-import HeaderTop from "./HeaderTop";
-import Image from "next/image";
-import SearchInput from "./SearchInput";
-import Link from "next/link";
-import { FaBell } from "react-icons/fa6";
 
-import CartElement from "./CartElement";
-import HeartElement from "./HeartElement";
+import { usePathname } from "next/navigation";
+import { useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import toast from "react-hot-toast";
+import { FaBell } from "react-icons/fa6";
+
+import HeaderTop from "./HeaderTop";
+import SearchInput from "./SearchInput";
+import CartElement from "./CartElement";
+import HeartElement from "./HeartElement";
 import { useWishlistStore } from "@/app/_zustand/wishlistStore";
 
 const Header = () => {
-  const { data: session, status } = useSession();
   const pathname = usePathname();
-  const { wishlist, setWishlist, wishQuantity } = useWishlistStore();
+  const { data: session } = useSession();
+  const { setWishlist, wishQuantity } = useWishlistStore();
 
   const handleLogout = () => {
-    setTimeout(() => signOut(), 1000);
     toast.success("Logout successful!");
+    setTimeout(() => signOut(), 1000);
   };
 
-  // getting all wishlist items by user id
   const getWishlistByUserId = async (id: string) => {
-    const response = await fetch(`http://localhost:3001/api/wishlist/${id}`, {
-      cache: "no-store",
-    });
-    const wishlist = await response.json();
-    const productArray: {
-      id: string;
-      title: string;
-      price: number;
-      image: string;
-      slug:string
-      stockAvailabillity: number;
-    }[] = [];
-    
-    wishlist.map((item: any) => productArray.push({id: item?.product?.id, title: item?.product?.title, price: item?.product?.price, image: item?.product?.mainImage, slug: item?.product?.slug, stockAvailabillity: item?.product?.inStock}));
-    
-    setWishlist(productArray);
+    try {
+      const response = await fetch(`http://localhost:3001/api/wishlist/${id}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch wishlist");
+
+      const wishlist = await response.json();
+      const productArray = wishlist.map((item: any) => ({
+        id: item?.product?.id,
+        title: item?.product?.title,
+        price: item?.product?.price,
+        image: item?.product?.mainImage,
+        slug: item?.product?.slug,
+        stockAvailabillity: item?.product?.inStock,
+      }));
+
+      setWishlist(productArray);
+    } catch (err) {
+      console.error("Error fetching wishlist:", err);
+    }
   };
 
-  // getting user by email so I can get his user id
   const getUserByEmail = async () => {
-    if (session?.user?.email) {
-      
-      fetch(`http://localhost:3001/api/users/email/${session?.user?.email}`, {
-        cache: "no-store",
-      })
-        .then((response) => response.json())
-        .then((data) => {
-          getWishlistByUserId(data?.id);
-        });
+    if (!session?.user?.email) return;
+
+    try {
+      const response = await fetch(
+        `http://localhost:3001/api/users/email/${encodeURIComponent(session.user.email)}`,
+        { cache: "no-store" }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch user");
+
+      const user = await response.json();
+      getWishlistByUserId(user?.id);
+    } catch (err) {
+      console.error("Error fetching user:", err);
     }
   };
 
   useEffect(() => {
-    getUserByEmail();
-  }, [session?.user?.email, wishlist.length]);
+    if (session?.user?.email) {
+      getUserByEmail();
+    }
+  }, [session?.user?.email]);
 
   return (
-    <header className="bg-white">
+    <header className="bg-white shadow-sm w-full">
       <HeaderTop />
-      {pathname.startsWith("/admin") === false && (
-        <div className="h-32 bg-white flex items-center justify-between px-16 max-[1320px]:px-16 max-md:px-6 max-lg:flex-col max-lg:gap-y-7 max-lg:justify-center max-lg:h-60 max-w-screen-2xl mx-auto">
-          <Link href="/">
-            <img src="/logo v1 svg.svg" width={300} height={300} alt="singitronic logo" className="relative right-5 max-[1023px]:w-56" />
-          </Link>
-          <SearchInput />
-          <div className="flex gap-x-10">
-            <HeartElement wishQuantity={wishQuantity} />
-            <CartElement />
+
+      {/* ====== Main Header ====== */}
+      {!pathname.startsWith("/admin") && (
+        <div className="w-full py-4 border-b bg-white">
+          <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-16 w-full flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            
+            {/* Logo */}
+            <div className="flex justify-between items-center w-full lg:w-auto">
+              <Link href="/" className="shrink-0">
+                <Image
+                  src="/logo v1 svg.svg"
+                  width={200}
+                  height={60}
+                  alt="Singitronic Logo"
+                  className="w-52 h-auto"
+                  priority
+                />
+              </Link>
+
+              {/* Icons on mobile */}
+              <div className="flex items-center gap-6 lg:hidden">
+                <HeartElement wishQuantity={wishQuantity} />
+                <CartElement />
+              </div>
+            </div>
+
+            {/* Search Bar (takes full width on both mobile & desktop) */}
+            <div className="w-full lg:flex-1 lg:px-8">
+              <SearchInput />
+            </div>
+
+            {/* Icons on desktop */}
+            <div className="hidden lg:flex items-center gap-6">
+              <HeartElement wishQuantity={wishQuantity} />
+              <CartElement />
+            </div>
           </div>
         </div>
       )}
-      {pathname.startsWith("/admin") === true && (
-        <div className="flex justify-between h-32 bg-white items-center px-16 max-[1320px]:px-10  max-w-screen-2xl mx-auto max-[400px]:px-5">
-          <Link href="/">
-            <Image
-              src="/logo v1.png"
-              width={130}
-              height={130}
-              alt="singitronic logo"
-              className="w-56 h-auto"
-            />
-          </Link>
-          <div className="flex gap-x-5 items-center">
-            <FaBell className="text-xl" />
-            <div className="dropdown dropdown-end">
-              <div tabIndex={0} role="button" className="w-10">
-                <Image
-                  src="/randomuser.jpg"
-                  alt="random profile photo"
-                  width={30}
-                  height={30}
-                  className="w-full h-full rounded-full"
-                />
+
+      {/* ====== Admin Header ====== */}
+      {pathname.startsWith("/admin") && (
+        <div className="w-full bg-white border-b shadow-sm py-4">
+          <div className="max-w-screen-2xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-16">
+            {/* Logo */}
+            <Link href="/" className="shrink-0">
+              <Image
+                src="/logo v1.png"
+                width={130}
+                height={60}
+                alt="Singitronic Logo"
+                className="w-36 h-auto"
+              />
+            </Link>
+
+            {/* Admin Profile */}
+            <div className="flex items-center gap-5">
+              <FaBell className="text-xl text-[#ff5b00]" />
+
+              {/* Profile Dropdown */}
+              <div className="relative group">
+                <button className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#ff5b00]">
+                  <Image
+                    src={session?.user?.image || "/randomuser.jpg"}
+                    alt="Profile"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+                <ul className="absolute right-0 mt-2 w-52 bg-white border shadow-lg rounded-md opacity-0 group-hover:opacity-100 group-hover:translate-y-0 transform -translate-y-2 transition-all duration-200 z-50">
+                  <li>
+                    <Link
+                      href="/admin"
+                      className="block px-4 py-2 hover:bg-[#ffe7db]"
+                    >
+                      Dashboard
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/admin/profile"
+                      className="block px-4 py-2 hover:bg-[#ffe7db]"
+                    >
+                      Profile
+                    </Link>
+                  </li>
+                  <li>
+                    <button
+                      onClick={handleLogout}
+                      className="block w-full text-left px-4 py-2 hover:bg-[#ffe7db]"
+                    >
+                      Logout
+                    </button>
+                  </li>
+                </ul>
               </div>
-              <ul
-                tabIndex={0}
-                className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52"
-              >
-                <li>
-                  <Link href="/admin">Dashboard</Link>
-                </li>
-                <li>
-                  <a>Profile</a>
-                </li>
-                <li onClick={handleLogout}>
-                  <a href="#">Logout</a>
-                </li>
-              </ul>
             </div>
           </div>
         </div>

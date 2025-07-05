@@ -24,12 +24,14 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [related, setRelated] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const BATCH_SIZE = 20;
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (page = 1) => {
     try {
       const [productsRes, categoriesRes] = await Promise.all([
-        fetch(PRODUCTS_API),
+        fetch(`${PRODUCTS_API}?page=${page}&limit=${BATCH_SIZE}`),
         fetch(CATEGORIES_API),
       ]);
 
@@ -38,7 +40,6 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
 
       const allProducts = productsData.data || [];
       const allCategories = categoriesData.data || [];
-
       const matchedCategory = allCategories.find(
         (cat: any) => cat.slug === categorySlug
       );
@@ -62,13 +63,23 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
         categories: product.categories || [],
       }));
 
-      setAllFetchedProducts(formatted);
-      setVisibleProducts(formatted.slice(0, BATCH_SIZE));
+      setAllFetchedProducts((prev) => [...prev, ...formatted]);
+      setVisibleProducts((prev) => [...prev, ...formatted]);
+      setHasMore(formatted.length === BATCH_SIZE);
     } catch (err) {
       console.error("Fetch error:", err);
     } finally {
       setInitialLoading(false);
+      setLoadingMore(false);
     }
+  };
+
+  const loadMore = () => {
+    if (!hasMore) return;
+    setLoadingMore(true);
+    const nextPage = currentPage + 1;
+    setCurrentPage(nextPage);
+    fetchProducts(nextPage);
   };
 
   const getRelated = (product: any) => {
@@ -81,23 +92,16 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
     setRelated(relatedItems.slice(0, 6));
   };
 
-  const loadMore = () => {
-    setLoadingMore(true);
-    setTimeout(() => {
-      const nextBatch = allFetchedProducts.slice(
-        visibleProducts.length,
-        visibleProducts.length + BATCH_SIZE
-      );
-      setVisibleProducts((prev) => [...prev, ...nextBatch]);
-      setLoadingMore(false);
-    }, 500);
-  };
-
-  const allDisplayed = visibleProducts.length >= allFetchedProducts.length;
-
   useEffect(() => {
-    fetchProducts();
+    setAllFetchedProducts([]);
+    setVisibleProducts([]);
+    setCurrentPage(1);
+    setHasMore(true);
+    setInitialLoading(true);
+    fetchProducts(1);
   }, [categorySlug]);
+
+  const allDisplayed = !hasMore;
 
   return (
     <div className="bg-white text-gray-900 py-10 min-h-screen">
@@ -119,12 +123,18 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
               </details>
             </div>
 
-            <div className="flex justify-between items-center flex-wrap gap-y-4 mb-6">
+            <div className="flex justify-between items-center flex-wrap gap-y-4 mb-4">
               <h1 className="text-2xl sm:text-3xl font-bold uppercase tracking-wide">
                 {categorySlug ? improveCategoryText(categorySlug) : "All Products"}
               </h1>
               <SortBy />
             </div>
+
+            {!initialLoading && visibleProducts.length > 0 && (
+              <p className="text-sm text-gray-600 mb-6">
+                Showing <strong>{visibleProducts.length}</strong> products
+              </p>
+            )}
 
             {initialLoading ? (
               <div className="flex justify-center py-10">
@@ -136,10 +146,7 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                   {visibleProducts.map((product) => (
-                    <div
-                      key={product.id}
-                      className="bg-white text-black rounded-xl shadow-md overflow-hidden flex flex-col justify-between"
-                    >
+                    <div key={product.id} className="bg-white text-black rounded-xl shadow-md overflow-hidden flex flex-col justify-between">
                       <Link href={`/products/${product.url_key}`} className="relative block">
                         <Image
                           src={product.image}
@@ -194,10 +201,7 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
                             onClick={() => {
                               const url = `${window.location.origin}/products/${product.url_key}`;
                               const text = `${product.name} - ${product.shortDescription}`;
-                              window.open(
-                                `https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`,
-                                '_blank'
-                              );
+                              window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
                             }}
                           >
                             <Share2 size={16} /> WhatsApp
@@ -208,7 +212,6 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
                   ))}
                 </div>
 
-                {/* Load More Button */}
                 <div className="flex justify-center mt-8">
                   <button
                     onClick={loadMore}
@@ -236,7 +239,6 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
         </div>
       </div>
 
-      {/* Product Modal */}
       <Dialog open={!!selectedProduct} onClose={() => setSelectedProduct(null)} className="fixed z-50 inset-0 overflow-y-auto">
         <div className="flex items-center justify-center min-h-screen bg-black/50 px-4">
           <Dialog.Panel className="bg-white rounded-lg p-6 max-w-2xl w-full text-black shadow-xl">

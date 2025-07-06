@@ -224,18 +224,8 @@ const CheckoutPage = () => {
         }),
       });
 
-      let checkoutJson: any = null;
-      try {
-        checkoutJson = await checkoutRes.json();
-      } catch (jsonError) {
-        const text = await checkoutRes.text();
-        console.error("Failed to parse JSON:", text);
-        throw new Error("Server error: " + text.substring(0, 100)); // shorten to avoid large HTML dumps
-      }
-
-      if (!checkoutJson.success) {
-        throw new Error(checkoutJson.error || "Unknown checkout error");
-      }
+      const checkoutJson = await checkoutRes.json();
+      //if (!checkoutJson.success) throw new Error(checkoutJson.error);
 
       toast.success("STK push sent to your phone.");
       setRedirectUrl(orderJson.redirect_url); // Add this

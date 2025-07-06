@@ -23,11 +23,11 @@ const SingleProductPage = ({ params }: { params: { slug: string } }) => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const res = await fetch("/api/proxy/products", { cache: "no-store" });
-        const data = await res.json();
-        const match = data?.data?.find((item: any) => item.url_key === params.slug);
-        if (!match) return notFound();
-        setProduct(match);
+        const res = await fetch(`/api/proxy/products/${params.slug}`, { cache: "no-store" });
+        const json = await res.json();
+
+        if (!json.success || !json.data) return notFound();
+        setProduct(json.data);
       } catch (error) {
         console.error("Failed to fetch product:", error);
         toast.error("Failed to load product");
@@ -61,8 +61,8 @@ const SingleProductPage = ({ params }: { params: { slug: string } }) => {
         if (!res.ok) throw new Error(result?.message || "Failed to add to cart");
         toast.success("Added to cart!");
       } catch {
-        console.error("Invalid JSON:", text);
-        toast.error("Invalid response from server");
+        console.log("Invalid JSON:", text);
+        toast.error("Invalid response from server"+ "---"+text);
       }
     } catch (error: any) {
       toast.error(error.message || "Add to cart failed");

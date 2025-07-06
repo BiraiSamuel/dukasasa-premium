@@ -154,7 +154,7 @@ const CheckoutPage = () => {
               first_name: name,
               last_name: lastname,
               email,
-              address1: { 0: "123 Main St" }, // ✅ Required field
+              address1: { 0: adress+"---"+city }, // ✅ Required field
               city,
               country,
               state: 'ke',
@@ -163,7 +163,7 @@ const CheckoutPage = () => {
               use_for_shipping: "true",
             },
             shipping: {
-              address1: { 0: "123 Main St" } // ✅ Required even if use_for_shipping is true
+              address1: { 0: adress+"---"+city } // ✅ Required even if use_for_shipping is true
             },
           }),
         }),
@@ -224,8 +224,18 @@ const CheckoutPage = () => {
         }),
       });
 
-      const checkoutJson = await checkoutRes.json();
-      if (!checkoutJson.success) throw new Error(checkoutJson.error);
+      let checkoutJson: any = null;
+      try {
+        checkoutJson = await checkoutRes.json();
+      } catch (jsonError) {
+        const text = await checkoutRes.text();
+        console.error("Failed to parse JSON:", text);
+        throw new Error("Server error: " + text.substring(0, 100)); // shorten to avoid large HTML dumps
+      }
+
+      if (!checkoutJson.success) {
+        throw new Error(checkoutJson.error || "Unknown checkout error");
+      }
 
       toast.success("STK push sent to your phone.");
       setRedirectUrl(orderJson.redirect_url); // Add this

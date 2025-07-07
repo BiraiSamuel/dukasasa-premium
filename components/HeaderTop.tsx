@@ -16,13 +16,15 @@ const HeaderTop = () => {
   };
 
   return (
-    <div className="bg-[#ff5b00] text-white text-sm border-b border-[#e25400] shadow-sm">
+    <div className="sticky top-0 z-50 bg-[#ff5b00]/95 backdrop-blur-sm text-white text-sm border-b border-[#e25400] shadow-sm">
       <div className="max-w-screen-2xl mx-auto flex justify-between items-center h-10 px-6 md:px-12 lg:px-20 max-md:flex-col max-md:gap-2 max-md:h-auto py-2">
         {/* Left - Contact Info */}
         <ul className="hidden sm:flex items-center gap-x-6 max-sm:gap-x-3">
           <li className="flex items-center gap-x-1">
             <Headphones className="w-4 h-4" />
-            <a href="tel:+254716261608" className="hover:underline">+254 716 261 608</a>
+            <a href="tel:+254716261608" className="hover:underline">
+              +254 716 261 608
+            </a>
           </li>
           <li className="flex items-center gap-x-1">
             <Mail className="w-4 h-4" />
@@ -89,7 +91,9 @@ const HeaderTop = () => {
           <ul className="flex flex-col sm:hidden mt-2 gap-y-1 w-full text-white text-sm">
             <li className="flex items-center gap-x-1">
               <Headphones className="w-4 h-4" />
-              <a href="tel:+254716261608" className="hover:underline">+254 716 261 608</a>
+              <a href="tel:+254716261608" className="hover:underline">
+                +254 716 261 608
+              </a>
             </li>
             <li className="flex items-center gap-x-1">
               <Mail className="w-4 h-4" />

@@ -11,15 +11,16 @@ const HeaderTop = () => {
   const [showMobileInfo, setShowMobileInfo] = useState(false);
 
   const handleLogout = () => {
-    setTimeout(() => signOut(), 1000);
     toast.success("Logout successful!");
+    setTimeout(() => signOut(), 1000);
   };
 
   return (
-    <div className="sticky top-0 z-50 bg-[#ff5b00]/95 backdrop-blur-sm text-white text-sm border-b border-[#e25400] shadow-sm">
+    <div className="sticky top-0 z-50 backdrop-blur-md bg-[#ff5b00]/90 text-white text-sm border-b border-[#e25400] shadow-sm">
       <div className="max-w-screen-2xl mx-auto flex justify-between items-center h-10 px-6 md:px-12 lg:px-20 max-md:flex-col max-md:gap-2 max-md:h-auto py-2">
-        {/* Left - Contact Info */}
-        <ul className="hidden sm:flex items-center gap-x-6 max-sm:gap-x-3">
+
+        {/* Left: Desktop Contact Info */}
+        <ul className="hidden sm:flex items-center gap-x-6">
           <li className="flex items-center gap-x-1">
             <Headphones className="w-4 h-4" />
             <a href="tel:+254716261608" className="hover:underline">
@@ -34,17 +35,18 @@ const HeaderTop = () => {
           </li>
         </ul>
 
-        {/* Mobile - Toggle Contact Info */}
-        <div className="sm:hidden flex items-center justify-between w-full">
+        {/* Right: Auth & Mobile Menu */}
+        <div className="sm:hidden flex justify-between w-full items-center">
+          {/* Toggle */}
           <button
             onClick={() => setShowMobileInfo(!showMobileInfo)}
             className="flex items-center gap-1"
           >
             {showMobileInfo ? <X size={16} /> : <Menu size={16} />}
-            <span className="text-white text-sm">Contact</span>
+            <span className="text-white">Contact</span>
           </button>
 
-          {/* Auth Info Right Side */}
+          {/* Auth Links */}
           <ul className="flex items-center gap-x-4 font-medium">
             {!session ? (
               <>
@@ -70,7 +72,7 @@ const HeaderTop = () => {
             ) : (
               <>
                 <li className="hidden sm:block text-white/80 text-sm">
-                  {session.user?.email}
+                  {session.user?.email || "Account"}
                 </li>
                 <li>
                   <button
@@ -86,7 +88,48 @@ const HeaderTop = () => {
           </ul>
         </div>
 
-        {/* Mobile Contact Info */}
+        {/* Desktop Auth Links */}
+        <ul className="hidden sm:flex items-center gap-x-4 font-medium">
+          {!session ? (
+            <>
+              <li>
+                <Link
+                  href="/login"
+                  className="flex items-center gap-x-1 hover:text-[#ffd1b2] transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Login</span>
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/register"
+                  className="flex items-center gap-x-1 hover:text-[#ffd1b2] transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Register</span>
+                </Link>
+              </li>
+            </>
+          ) : (
+            <>
+              <li className="text-white/80 text-sm">
+                {session.user?.email || "Account"}
+              </li>
+              <li>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-x-1 hover:text-[#ffd1b2] transition-colors"
+                >
+                  <User className="w-4 h-4" />
+                  <span>Logout</span>
+                </button>
+              </li>
+            </>
+          )}
+        </ul>
+
+        {/* Mobile: Contact Info Toggle Content */}
         {showMobileInfo && (
           <ul className="flex flex-col sm:hidden mt-2 gap-y-1 w-full text-white text-sm">
             <li className="flex items-center gap-x-1">

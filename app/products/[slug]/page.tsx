@@ -19,6 +19,7 @@ import {
 
 const SingleProductPage = ({ params }: { params: { slug: string } }) => {
   const [product, setProduct] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -31,6 +32,8 @@ const SingleProductPage = ({ params }: { params: { slug: string } }) => {
       } catch (error) {
         console.error("Failed to fetch product:", error);
         toast.error("Failed to load product");
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -62,19 +65,50 @@ const SingleProductPage = ({ params }: { params: { slug: string } }) => {
         toast.success("Added to cart!");
       } catch {
         console.log("Invalid JSON:", text);
-        toast.error("Invalid response from server"+ "---"+text);
+        toast.error("Invalid response from server" + " --- " + text);
       }
     } catch (error: any) {
       toast.error(error.message || "Add to cart failed");
     }
   };
 
-  if (!product) {
-    return <p className="p-10 text-center">Loading...</p>;
+  if (loading || !product) {
+    // Skeleton loader UI
+    return (
+      <div className="max-w-screen-2xl mx-auto px-4 md:px-8 py-10 animate-pulse text-black">
+        <div className="flex flex-col lg:flex-row gap-10">
+          {/* Image Skeleton */}
+          <div className="flex-1 space-y-4">
+            <div className="w-full max-w-md h-[400px] bg-gray-200 rounded-md mx-auto"></div>
+            <div className="flex justify-center gap-3 flex-wrap mt-5">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="w-20 h-20 bg-gray-200 rounded-md"></div>
+              ))}
+            </div>
+          </div>
+
+          {/* Info Skeleton */}
+          <div className="flex-1 space-y-6">
+            <div className="h-6 bg-gray-200 w-32 rounded"></div>
+            <div className="h-10 bg-gray-300 w-3/4 rounded"></div>
+            <div className="h-8 bg-[#ff5b00]/50 w-24 rounded"></div>
+
+            <div className="h-6 bg-gray-200 w-40 rounded"></div>
+            <div className="h-24 bg-gray-100 rounded"></div>
+
+            <div className="flex gap-4 mt-4">
+              <div className="bg-[#ff5b00]/70 h-10 w-32 rounded"></div>
+              <div className="border border-[#ff5b00]/70 h-10 w-32 rounded"></div>
+            </div>
+
+            <div className="mt-4 w-[300px] h-[50px] bg-gray-100 rounded mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const images = product.images || [];
-  const currentYear = new Date().getFullYear();
 
   return (
     <div className="bg-white text-black">

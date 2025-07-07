@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Breadcrumb, Filters, SortBy } from "@/components";
@@ -18,6 +19,7 @@ const CATEGORIES_API = "/api/proxy/categories";
 
 const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
   const categorySlug = params?.slug?.[0] ?? "";
+
   const [allFetchedProducts, setAllFetchedProducts] = useState<any[]>([]);
   const [visibleProducts, setVisibleProducts] = useState<any[]>([]);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -27,6 +29,14 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const BATCH_SIZE = 20;
+
+  // Get filters from URL
+  const searchParams = useSearchParams();
+  const inStock = searchParams.get("inStock") === "true";
+  const outOfStock = searchParams.get("outOfStock") === "true";
+  const maxPrice = Number(searchParams.get("price") || "3000");
+  const minRating = Number(searchParams.get("rating") || "0");
+  const selectedCategoryIds = searchParams.get("categories")?.split(",") || [];
 
   const fetchProducts = async (page = 1) => {
     try {
@@ -40,15 +50,34 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
 
       const allProducts = productsData.data || [];
       const allCategories = categoriesData.data || [];
-      const matchedCategory = allCategories.find(
-        (cat: any) => cat.slug === categorySlug
-      );
 
-      const filteredProducts = matchedCategory
-        ? allProducts.filter((product: any) =>
-            product.categories?.some((c: any) => c.id === matchedCategory.id)
-          )
-        : allProducts;
+      const filteredProducts = allProducts.filter((product: any) => {
+        const isInSelectedCategory =
+          selectedCategoryIds.length === 0 ||
+          product.categories?.some((cat: any) =>
+            selectedCategoryIds.includes(String(cat.id))
+          );
+
+        const matchesCategorySlug =
+          !categorySlug ||
+          product.categories?.some((cat: any) => cat.slug === categorySlug);
+
+        const isInStock = product.in_stock === true;
+        const stockCheck = (inStock && isInStock) || (outOfStock && !isInStock);
+
+        const price = product.price || 0;
+        const priceCheck = price <= maxPrice;
+
+        const ratingCheck = (product.reviews?.average_rating || 0) >= minRating;
+
+        return (
+          matchesCategorySlug &&
+          isInSelectedCategory &&
+          stockCheck &&
+          priceCheck &&
+          ratingCheck
+        );
+      });
 
       const formatted = filteredProducts.map((product: any) => ({
         id: product.id,
@@ -56,8 +85,10 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
         url_key: product.url_key,
         image: product.base_image?.medium_image_url || "/placeholder.jpg",
         formattedPrice: product.formated_price,
-        shortDescription: product.short_description?.replace(/<[^>]*>?/gm, "") ?? "",
-        description: product.description?.replace(/<[^>]*>?/gm, "") ?? "",
+        shortDescription:
+          product.short_description?.replace(/<[^>]*>?/gm, "") ?? "",
+        description:
+          product.description?.replace(/<[^>]*>?/gm, "") ?? "",
         averageRating: product.reviews?.average_rating || 0,
         totalReviews: product.reviews?.total || 0,
         categories: product.categories || [],
@@ -93,13 +124,21 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
   };
 
   useEffect(() => {
+    // Reset data and refetch when filters or categorySlug changes
     setAllFetchedProducts([]);
     setVisibleProducts([]);
     setCurrentPage(1);
     setHasMore(true);
     setInitialLoading(true);
     fetchProducts(1);
-  }, [categorySlug]);
+  }, [
+    categorySlug,
+    inStock,
+    outOfStock,
+    maxPrice,
+    minRating,
+    selectedCategoryIds.join(","),
+  ]);
 
   const allDisplayed = !hasMore;
 
@@ -116,7 +155,9 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
           <main className="w-full">
             <div className="md:hidden mb-4">
               <details className="bg-white text-black rounded-md shadow p-4">
-                <summary className="cursor-pointer font-semibold text-sm">Filter Products</summary>
+                <summary className="cursor-pointer font-semibold text-sm">
+                  Filter Products
+                </summary>
                 <div className="mt-4">
                   <Filters />
                 </div>
@@ -125,7 +166,9 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
 
             <div className="flex justify-between items-center flex-wrap gap-y-4 mb-4">
               <h1 className="text-2xl sm:text-3xl font-bold uppercase tracking-wide">
-                {categorySlug ? improveCategoryText(categorySlug) : "All Products"}
+                {categorySlug
+                  ? improveCategoryText(categorySlug)
+                  : "All Products"}
               </h1>
               <SortBy />
             </div>
@@ -146,7 +189,10 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
                   {visibleProducts.map((product) => (
-                    <div key={product.id} className="bg-white text-black rounded-xl shadow-md overflow-hidden flex flex-col justify-between">
+                    <div
+                      key={product.id}
+                      className="bg-white text-black rounded-xl shadow-md overflow-hidden flex flex-col justify-between"
+                    >
                       <Link href={`/products/${product.url_key}`} className="relative block">
                         <Image
                           src={product.image}
@@ -158,9 +204,13 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
                       </Link>
 
                       <div className="p-4 space-y-2">
-                        <Link href={`/products/${product.url_key}`} className="block hover:text-[#ff5b00]">
+                        <Link
+                          href={`/products/${product.url_key}`}
+                          className="block hover:text-[#ff5b00]"
+                        >
                           <h3 className="font-semibold text-base line-clamp-2">{product.name}</h3>
                         </Link>
+
                         <div className="text-sm text-gray-600">
                           <p className="line-clamp-3">{product.shortDescription}</p>
                           <button
@@ -239,7 +289,12 @@ const ShopPage = ({ params }: { params: { slug?: string[] } }) => {
         </div>
       </div>
 
-      <Dialog open={!!selectedProduct} onClose={() => setSelectedProduct(null)} className="fixed z-50 inset-0 overflow-y-auto">
+      {/* Product Modal */}
+      <Dialog
+        open={!!selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        className="fixed z-50 inset-0 overflow-y-auto"
+      >
         <div className="flex items-center justify-center min-h-screen bg-black/50 px-4">
           <Dialog.Panel className="bg-white rounded-lg p-6 max-w-2xl w-full text-black shadow-xl">
             <Dialog.Title className="text-2xl font-bold mb-4">

@@ -1,5 +1,3 @@
-// app/api/proxy/cart/add/[id]/route.ts
-
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -7,23 +5,32 @@ const BAGISTO_URL = "https://jezkimhardware.dukasasa.co.ke";
 
 export async function POST(req: NextRequest, { params }: { params: { productId: string } }) {
   const body = await req.json();
-  const bagistoSession = cookies().get("bagisto-session");
+  const cookieStore = cookies();
+  const bagistoSession = cookieStore.get("bagisto-session");
+  const authHeader = req.headers.get("authorization");
 
   console.log("🛒 Attempting to add to cart:");
   console.log("Product ID:", params.productId);
   console.log("Payload:", JSON.stringify(body, null, 2));
+  console.log("Bearer Token:", authHeader);
   console.log("Session Cookie:", bagistoSession?.value);
+
+  // Use Bearer token if available, fallback to session cookie
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "Content-Type": "application/json",
+  };
+
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    headers.Authorization = authHeader;
+  } else if (bagistoSession?.value) {
+    headers.Cookie = `bagisto_session=${bagistoSession.value}`;
+  }
 
   try {
     const res = await fetch(`${BAGISTO_URL}/api/checkout/cart/add/${params.productId}`, {
       method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        ...(bagistoSession && {
-          Cookie: `bagisto_session=${bagistoSession.value}`,
-        }),
-      },
+      headers,
       body: JSON.stringify(body),
     });
 
@@ -40,7 +47,6 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
       );
     }
 
-    // ❗ Check for known internal Bagisto error (usually bad payload)
     if (json?.error?.message?.includes("Trying to get property 'status' of non-object")) {
       console.error("⚠️ Malformed add-to-cart request. Likely payload mismatch.");
       return NextResponse.json(
@@ -55,7 +61,7 @@ export async function POST(req: NextRequest, { params }: { params: { productId: 
 
     const nextRes = NextResponse.json({ success: res.ok, data: json }, { status: res.status });
 
-    // ✅ Handle session cookie set from Bagisto
+    // ✅ Set session cookie from Bagisto response (if provided)
     const setCookie = res.headers.get("set-cookie");
     console.log("Set-Cookie Header:", setCookie);
     if (setCookie) {

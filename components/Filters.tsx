@@ -22,7 +22,7 @@ const Filters = () => {
   const [inputCategory, setInputCategory] = useState<InputCategory>({
     inStock: { text: "instock", isChecked: true },
     outOfStock: { text: "outofstock", isChecked: true },
-    priceFilter: { text: "price", value: 3000 },
+    priceFilter: { text: "price", value: 300000 },
     ratingFilter: { text: "rating", value: 0 },
   });
 
@@ -112,7 +112,7 @@ const Filters = () => {
         <input
           type="range"
           min={0}
-          max={3000}
+          max={300000}
           step={10}
           value={inputCategory.priceFilter.value}
           onChange={(e) =>
@@ -123,7 +123,7 @@ const Filters = () => {
           }
           className="w-full accent-[#ff5b00]"
         />
-        <p className="text-sm mt-1">Max price: ${inputCategory.priceFilter.value}</p>
+        <p className="text-sm mt-1">Max price: KES.{inputCategory.priceFilter.value}</p>
       </div>
 
       <hr className="border-gray-300" />

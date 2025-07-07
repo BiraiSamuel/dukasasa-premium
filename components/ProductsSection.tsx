@@ -7,12 +7,10 @@ import { FaStar, FaRegStar } from "react-icons/fa";
 import { Dialog } from "@headlessui/react";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
-import {
-  bagistoAddToCart,
-  bagistoAddToWishlist,
-} from "@/lib/bagisto";
+import { bagistoAddToWishlist } from "@/lib/bagisto";
+import { useRouter } from "next/navigation";
 
-const PRODUCTS_PER_PAGE = 50;
+const PRODUCTS_PER_PAGE = 20;
 
 type Product = {
   id: number;
@@ -31,6 +29,7 @@ type Product = {
 
 const ProductsSection = () => {
   const { data: session } = useSession();
+  const router = useRouter();
   const token = session?.accessToken as string;
 
   const [products, setProducts] = useState<Product[]>([]);
@@ -82,24 +81,39 @@ const ProductsSection = () => {
     fetchProducts();
   }, [page]);
 
-  const handleShowMore = () => {
-    if (!loading && hasMore) {
-      setPage((prev) => prev + 1);
-    }
-  };
+  const handleAddToCart = async (productId: number, redirect = false) => {
+    //if (!token) return alert("Please log in to add to cart.");
 
-  const handleAddToCart = async (productId: number) => {
-    if (!token) return alert("Please log in to add to cart.");
     try {
-      await bagistoAddToCart(productId, token);
-      alert("Product added to cart!");
+      const res = await fetch(`/api/proxy/cart/add/${productId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          product_id: productId,
+          quantity: 1,
+        }),
+      });
+
+      const text = await res.text();
+      try {
+        const result = JSON.parse(text);
+        if (!res.ok) throw new Error(result?.message || "Failed to add to cart");
+        alert("Product added to cart!");
+        if (redirect) router.push("/cart");
+      } catch {
+        console.error("Invalid response:", text);
+        alert("Unexpected response from server.");
+      }
     } catch (error: any) {
-      alert(error.message);
+      alert(error.message || "Failed to add to cart");
     }
   };
 
   const handleAddToWishlist = async (productId: number) => {
-    if (!token) return alert("Please log in to add to wishlist.");
+    //if (!token) return alert("Please log in to add to wishlist.");
     try {
       await bagistoAddToWishlist(productId, token);
       alert("Added to wishlist!");
@@ -121,6 +135,12 @@ const ProductsSection = () => {
     products.filter(
       (item) => item.id !== current.id && item.name.split(" ")[0] === current.name.split(" ")[0]
     ).slice(0, 3);
+
+  const handleShowMore = () => {
+    if (!loading && hasMore) {
+      setPage((prevPage) => prevPage + 1);
+    }
+  };
 
   return (
     <section className="bg-gradient-to-br from-[#cc4400] to-[#ff5b00] text-white border-t-4 border-white py-20">
@@ -150,11 +170,8 @@ const ProductsSection = () => {
                     height={300}
                     className="w-full h-52 object-contain p-4"
                   />
-
                   {product.isOnSale && (
-                    <span className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">
-                      SALE
-                    </span>
+                    <span className="absolute top-2 left-2 bg-red-600 text-white text-xs px-2 py-1 rounded">SALE</span>
                   )}
                   {product.inStock ? (
                     <span className="absolute top-2 right-2 bg-green-600 text-white text-xs px-2 py-1 rounded">
@@ -196,8 +213,17 @@ const ProductsSection = () => {
                       Add to Cart
                     </button>
                     <button
+                      onClick={() => handleAddToCart(product.id, true)}
+                      className="border border-[#ff5b00] text-[#ff5b00] px-3 py-1 text-sm rounded hover:bg-[#cc4400] hover:text-white"
+                    >
+                      Buy Now
+                    </button>
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <button
                       onClick={() => handleAddToWishlist(product.id)}
-                      className="text-sm text-[#ff5b00] underline hover:text-[#cc4400]"
+                      className="text-xs text-[#ff5b00] underline hover:text-[#cc4400]"
                     >
                       Wishlist
                     </button>
@@ -220,6 +246,7 @@ const ProductsSection = () => {
         )}
       </div>
 
+      {/* Modal */}
       <Dialog open={!!selectedProduct} onClose={() => setSelectedProduct(null)} className="fixed z-50 inset-0 overflow-y-auto">
         <div className="flex items-center justify-center min-h-screen bg-black/50 px-4">
           <Dialog.Panel className="bg-white rounded-lg p-6 max-w-xl w-full text-black shadow-xl space-y-4">
@@ -251,43 +278,6 @@ const ProductsSection = () => {
                 Add to Cart
               </button>
             </div>
-
-            <div className="flex items-center gap-4 pt-4 border-t">
-              <span className="text-sm font-medium">Share:</span>
-              <a
-                href={`https://www.facebook.com/sharer/sharer.php?u=https://dukasasa.co.ke/products/${selectedProduct?.urlKey}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-blue-600 text-sm hover:underline"
-              >
-                Facebook
-              </a>
-              <a
-                href={`https://wa.me/?text=Check out this product: https://dukasasa.co.ke/products/${selectedProduct?.urlKey}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-green-600 text-sm hover:underline"
-              >
-                WhatsApp
-              </a>
-            </div>
-
-            {selectedProduct && (
-              <div className="pt-6">
-                <h4 className="text-md font-semibold mb-2 border-b pb-1">Related Products</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  {getRelatedProducts(selectedProduct).map((related) => (
-                    <Link
-                      href={`/products/${related.urlKey}`}
-                      key={related.id}
-                      className="text-sm text-[#ff5b00] hover:text-[#cc4400] underline"
-                    >
-                      {related.name}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <button
               className="mt-4 text-sm text-[#ff5b00] underline hover:text-[#cc4400]"

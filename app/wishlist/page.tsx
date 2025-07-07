@@ -6,6 +6,7 @@ import { useSession } from "next-auth/react";
 import { nanoid } from "nanoid";
 import { bagistoGetWishlist, bagistoRemoveFromWishlist } from "@/lib/bagisto";
 import WishItem from "@/components/WishItem";
+import { Loader2 } from "lucide-react";
 
 interface WishlistItem {
   id: string;
@@ -19,13 +20,26 @@ interface WishlistItem {
 const WishlistPage = () => {
   const { data: session } = useSession();
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchWishlist = async () => {
     try {
+      setLoading(true);
+
       const token = (session as any)?.accessToken as string;
-      if (!token) return;
+      if (!token) {
+        console.warn("No access token found.");
+        return;
+      }
 
       const response = await bagistoGetWishlist(token);
+      console.log("Wishlist response:", response);
+
+      if (!Array.isArray(response)) {
+        console.warn("Wishlist response is not an array.");
+        setWishlist([]);
+        return;
+      }
 
       const products = response.map((item: any) => ({
         id: item.id,
@@ -39,6 +53,8 @@ const WishlistPage = () => {
       setWishlist(products);
     } catch (error) {
       console.error("Failed to fetch wishlist:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,20 +71,27 @@ const WishlistPage = () => {
   };
 
   useEffect(() => {
-    if ((session as any)?.accessToken) {
+    if (session && (session as any)?.accessToken) {
       fetchWishlist();
+    } else {
+      setLoading(false); // Prevent infinite loading
     }
   }, [session]);
 
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen pb-16">
       <SectionTitle title="Wishlist" path="Home | Wishlist" />
-      {wishlist.length === 0 ? (
-        <h3 className="text-center text-4xl py-10 text-black max-lg:text-3xl max-sm:text-2xl max-sm:pt-5 max-[400px]:text-xl">
-          No items found in the wishlist
+
+      {loading ? (
+        <div className="flex justify-center mt-12">
+          <Loader2 className="h-8 w-8 animate-spin text-[#ff5b00]" />
+        </div>
+      ) : wishlist.length === 0 ? (
+        <h3 className="text-center text-4xl py-16 text-black max-lg:text-3xl max-sm:text-2xl max-sm:pt-10 max-[400px]:text-xl">
+          No items found in your wishlist.
         </h3>
       ) : (
-        <div className="max-w-screen-2xl mx-auto px-4">
+        <div className="max-w-screen-2xl mx-auto px-4 animate-fade-in">
           <div className="overflow-x-auto">
             <table className="table text-center">
               <thead>

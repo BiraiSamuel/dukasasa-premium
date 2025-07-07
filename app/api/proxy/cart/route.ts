@@ -1,28 +1,35 @@
-// /app/api/proxy/cart/route.ts
-
 "use server";
 
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 
-const BAGISTO_BASE_URL = "https://jezkimhardware.dukasasa.co.ke";
+const BAGISTO_BASE_URL =
+  process.env.BAGISTO_BASE_URL || "https://jezkimhardware.dukasasa.co.ke";
 
-// Helper: Get Bagisto session cookie in required format
-function getSessionCookie() {
-  const cookieValue = cookies().get("bagisto-session")?.value;
-  return cookieValue ? `bagisto_session=${cookieValue}` : "";
+// ✅ TS-safe helper: Resolve authentication (Bearer > Cookie)
+function resolveAuthHeader(req?: NextRequest): Record<string, string> {
+  const authHeader = req?.headers?.get("authorization");
+  const session = cookies().get("bagisto-session")?.value;
+
+  const headers: Record<string, string> = {};
+  if (authHeader?.startsWith("Bearer ")) {
+    headers["Authorization"] = authHeader;
+  } else if (session) {
+    headers["Cookie"] = `bagisto_session=${session}`;
+  }
+  return headers;
 }
 
-// GET: Retrieve cart details
-export async function GET() {
+// ✅ GET: Retrieve cart details
+export async function GET(req: NextRequest) {
   try {
-    const sessionCookie = getSessionCookie();
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...resolveAuthHeader(req),
+    };
 
     const res = await fetch(`${BAGISTO_BASE_URL}/api/checkout/cart`, {
-      headers: {
-        Accept: "application/json",
-        Cookie: sessionCookie,
-      },
+      headers,
     });
 
     if (!res.ok) {
@@ -43,36 +50,37 @@ export async function GET() {
   }
 }
 
-// DELETE: Remove a cart item (Bagisto uses GET for this, not DELETE!)
+// ✅ DELETE: Remove a cart item
 export async function DELETE(req: NextRequest) {
-  const sessionCookie = getSessionCookie();
   const { item_id } = await req.json();
-  //console.log(item_id);
 
-  if (!sessionCookie || !item_id) {
+  if (!item_id) {
     return NextResponse.json(
-      { success: false, message: "Missing session or item_id." },
+      { success: false, message: "Missing item_id." },
       { status: 400 }
     );
   }
 
   try {
-    // ⚠️ Bagisto uses GET for removing cart items
-    const res = await fetch(`${BAGISTO_BASE_URL}/api/checkout/cart/remove-item/${item_id}`, {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-        Cookie: sessionCookie,
-      },
-    });
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      ...resolveAuthHeader(req),
+    };
+
+    const res = await fetch(
+      `${BAGISTO_BASE_URL}/api/checkout/cart/remove-item/${item_id}`,
+      {
+        method: "GET", // ✅ Bagisto uses GET to remove item
+        headers,
+      }
+    );
 
     const text = await res.text();
-
     try {
       const result = JSON.parse(text);
       if (!res.ok) throw new Error(result?.message || "Failed to delete item");
       return NextResponse.json({ success: true, result });
-    } catch (err) {
+    } catch {
       return NextResponse.json(
         { success: false, message: "Invalid response", raw: text },
         { status: res.status }
@@ -80,32 +88,33 @@ export async function DELETE(req: NextRequest) {
     }
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Something went wrong while deleting item.", error },
+      { success: false, message: "Failed to delete item.", error },
       { status: 500 }
     );
   }
 }
 
-// PATCH: Update cart item quantity
+// ✅ PATCH: Update cart item quantity
 export async function PATCH(req: NextRequest) {
-  const sessionCookie = getSessionCookie();
   const { item_id, quantity } = await req.json();
 
-  if (!sessionCookie || !item_id || !quantity) {
+  if (!item_id || !quantity) {
     return NextResponse.json(
-      { success: false, message: "Missing session, item_id, or quantity." },
+      { success: false, message: "Missing item_id or quantity." },
       { status: 400 }
     );
   }
 
   try {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      ...resolveAuthHeader(req),
+    };
+
     const res = await fetch(`${BAGISTO_BASE_URL}/api/checkout/cart/update`, {
       method: "PATCH",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-        Cookie: sessionCookie,
-      },
+      headers,
       body: JSON.stringify({ qty: { [item_id]: quantity } }),
     });
 
@@ -115,7 +124,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ success: true, cart: data });
   } catch (error) {
     return NextResponse.json(
-      { success: false, message: "Something went wrong.", error },
+      { success: false, message: "Failed to update cart.", error },
       { status: 500 }
     );
   }

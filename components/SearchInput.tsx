@@ -1,4 +1,5 @@
 "use client";
+
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 
@@ -9,25 +10,14 @@ const SearchInput = () => {
 
   const searchProducts = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!searchInput.trim()) return;
+    const trimmedInput = searchInput.trim();
+    if (!trimmedInput) return;
 
     setLoading(true);
 
     try {
-      const response = await fetch("https://jezkimhardware.dukasasa.co.ke/api/products");
-      if (!response.ok) throw new Error("Failed to fetch products");
-
-      const result = await response.json();
-      const allProducts = result?.data || [];
-
-      // Filter locally by name or slug
-      const filtered = allProducts.filter((product: any) =>
-        product.name.toLowerCase().includes(searchInput.toLowerCase())
-      );
-
-      // Optional: store in localStorage or use a context/Zustand if desired
-      // Redirect to search results page with query
-      router.push(`/search?search=${encodeURIComponent(searchInput.trim())}`);
+      // Navigate to search results page with query param
+      router.push(`/search?query=${encodeURIComponent(trimmedInput)}`);
     } catch (error) {
       console.error("Search failed:", error);
     } finally {
